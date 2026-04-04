@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3 uid="uid://cosl2gcdqfe0x"]
+
+[ext_resource type="Script" uid="uid://chfdr42w7smxs" path="res://addons/player_controller/player_controller.gd" id="1_l8b0m"]
+[ext_resource type="Script" uid="uid://buhucrgu6u7ld" path="res://addons/player_controller/net_owner_synchronizer.gd" id="2_bntlu"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_agyjm"]
+properties/0/path = NodePath(".:net_owner")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+properties/1/path = NodePath(".:avatar_path")
+properties/1/spawn = true
+properties/1/replication_mode = 2
+
+[node name="PlayerController" type="Node"]
+script = ExtResource("1_l8b0m")
+metadata/_custom_type_script = "uid://chfdr42w7smxs"
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_agyjm")
+script = ExtResource("2_bntlu")

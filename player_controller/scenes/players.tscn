@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3 uid="uid://ddalp8sxwvsvv"]
+
+[ext_resource type="Script" uid="uid://j1gevydv4c37" path="res://addons/player_controller/players.gd" id="1_lxtji"]
+
+[node name="Players" type="Node" node_paths=PackedStringArray("player_spawner")]
+process_mode = 3
+script = ExtResource("1_lxtji")
+player_spawner = NodePath("PlayerSpawner")
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("..")

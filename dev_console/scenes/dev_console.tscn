@@ -1,0 +1,37 @@
+[gd_scene load_steps=3 format=3 uid="uid://bkvr0l6v4q3to"]
+
+[ext_resource type="Theme" uid="uid://dyjj2msrnkikr" path="res://addons/dev_console/default_console_theme.tres" id="1_cfyls"]
+[ext_resource type="Script" uid="uid://be8qgycorb4og" path="res://addons/dev_console/dev_console_ui.gd" id="2_cfyls"]
+
+[node name="PanelContainer" type="PanelContainer" node_paths=PackedStringArray("history", "input")]
+custom_minimum_size = Vector2(0, 240)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_force_pass_scroll_events = false
+theme = ExtResource("1_cfyls")
+script = ExtResource("2_cfyls")
+history = NodePath("MarginContainer/VBoxContainer/Console")
+input = NodePath("MarginContainer/VBoxContainer/Input")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+clip_contents = true
+layout_mode = 2
+
+[node name="Console" type="RichTextLabel" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+scroll_following = true
+vertical_alignment = 2
+
+[node name="Input" type="LineEdit" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.0
+keep_editing_on_text_submit = true
+flat = true
+select_all_on_focus = true
+caret_blink = true

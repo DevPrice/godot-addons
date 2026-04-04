@@ -1,0 +1,35 @@
+[gd_scene load_steps=2 format=3 uid="uid://cnicb0ows6hmb"]
+
+[ext_resource type="PackedScene" uid="uid://bkvr0l6v4q3to" path="res://addons/dev_console/scenes/dev_console.tscn" id="2_jh8gr"]
+
+[node name="DevConsole" type="CanvasLayer"]
+process_mode = 3
+layer = 1000
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="VSplitContainer" type="VSplitContainer" parent="Root"]
+custom_minimum_size = Vector2(0, 320)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Control" type="Control" parent="Root/VSplitContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="PanelContainer" parent="Root/VSplitContainer" instance=ExtResource("2_jh8gr")]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
