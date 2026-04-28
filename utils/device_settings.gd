@@ -28,6 +28,10 @@ static func flush() -> Error:
 	if flushed_settings.is_empty(): return OK
 
 	var config_file := ConfigFile.new()
+	var device_settings_path := get_device_settings_path()
+	if not device_settings_path:
+		print_debug("Not flushing settings (no settings file configured)")
+		return OK
 	var load_err := config_file.load(get_device_settings_path())
 	if load_err and load_err != ERR_FILE_NOT_FOUND:
 		return load_err
@@ -39,7 +43,7 @@ static func flush() -> Error:
 		config_file.set_value(parts[0], "/".join(parts.slice(1)), value)
 		ProjectSettings.set(setting_path, value)
 
-	return config_file.save(get_device_settings_path())
+	return config_file.save(device_settings_path)
 
 static func _flush_unhandled() -> void:
 	var err := flush()
