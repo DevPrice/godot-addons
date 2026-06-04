@@ -76,7 +76,7 @@ func _generate_texture_element(b: int, image: Image, p_palette: PackedColorArray
 		if _regen_queued:
 			return ERR_SKIP
 		for r: int in range(p_depth):
-			var color := Color(r / size, g / size, b / size)
+			var color := Color(r / size + offset, g / size + offset, b / size + offset)
 			var palette_color := _get_palette_color(p_palette, color)
 			image.set_pixel(r, g, palette_color)
 	return OK
