@@ -20,6 +20,7 @@
 var _data_dirty: bool = true
 var _updated_queued: bool = false
 var _regen_queued: bool = false
+var _current_task_id: int = -1
 var _texture_rid: RID
 
 func _get_data() -> Array[Image]:
@@ -52,11 +53,14 @@ func _queue_update() -> void:
 	_update_texture.call_deferred()
 
 func _update_texture() -> void:
-	var image := _generate_texture()
-	_update_texture_from_image.call_deferred(image)
+	if _current_task_id == -1:
+		_start_thread()
+		_regen_queued = false
+	else:
+		_regen_queued = true
 	_updated_queued = false
 
-func _generate_texture() -> Array[Image]:
+func _generate_texture(p_palette: PackedColorArray) -> Array[Image]:
 	if not _data_dirty: return _data
 	var new_data: Array[Image]
 	new_data.resize(depth)
@@ -68,9 +72,8 @@ func _generate_texture() -> Array[Image]:
 		for g: int in range(depth):
 			for r: int in range(depth):
 				var color := Color(r / size, g / size, b / size)
-				var palette_color := _get_palette_color(color)
+				var palette_color := _get_palette_color(p_palette, color)
 				image.set_pixel(r, g, palette_color)
-	_data_dirty = false
 	return new_data
 
 func _update_texture_from_image(image: Array[Image]) -> void:
@@ -84,17 +87,33 @@ func _update_texture_from_image(image: Array[Image]) -> void:
 	RenderingServer.texture_set_path(_texture_rid, get_path())
 	emit_changed()
 
-func _get_palette_color(color: Color) -> Color:
-	if palette.is_empty():
+func _start_thread() -> void:
+	_current_task_id = WorkerThreadPool.add_task(_thread_function.bind(palette), false, "PaletteLUT generation")
+
+func _thread_function(p_palette: PackedColorArray) -> void:
+	_thread_finished.call_deferred(_generate_texture(p_palette))
+
+func _thread_finished(image: Array[Image]) -> void:
+	if _current_task_id != -1:
+		WorkerThreadPool.wait_for_task_completion(_current_task_id)
+		_current_task_id = -1
+	_update_texture_from_image(image)
+	if _regen_queued:
+		_data_dirty = true
+		_regen_queued = false
+		_start_thread()
+
+func _get_palette_color(p_palette: PackedColorArray, color: Color) -> Color:
+	if p_palette.is_empty():
 		return color
 
-	var nearest_color := palette[0]
-	var nearest_distance := _get_perceptual_distance(color, palette[0])
+	var nearest_color := p_palette[0]
+	var nearest_distance := _get_perceptual_distance(color, p_palette[0])
 
-	for i: int in range(1, palette.size()):
-		var distance := _get_perceptual_distance(color, palette[i])
+	for i: int in range(1, p_palette.size()):
+		var distance := _get_perceptual_distance(color, p_palette[i])
 		if distance < nearest_distance:
-			nearest_color = palette[i]
+			nearest_color = p_palette[i]
 			nearest_distance = distance
 
 	return nearest_color
