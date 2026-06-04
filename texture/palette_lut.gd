@@ -103,15 +103,16 @@ func _task_function(p_palette: PackedColorArray, p_depth: int, p_dirty: bool) ->
 		new_data[i] = Image.create_empty(p_depth, p_depth, has_mipmaps(), get_format())
 	if p_dirty:
 		# TODO: Address race conditions with this error
-		var err: Error = OK
+		var task_errors: Array[Error]
+		task_errors.resize(p_depth)
 		var group_task_id := WorkerThreadPool.add_group_task(
 			func (i: int):
-				var element_err := _generate_texture_element(i, new_data[i], p_palette, p_depth)
-				if not err and element_err:
-					err = element_err,
+				task_errors[i] = _generate_texture_element(i, new_data[i], p_palette, p_depth),
 			p_depth,
 		)
 		WorkerThreadPool.wait_for_group_task_completion(group_task_id)
+		var err_idx := task_errors.find_custom(func (err: Error): return bool(err))
+		var err := OK if err_idx == -1 else task_errors[err_idx]
 		_thread_finished.call_deferred(err, new_data, Vector3i(p_depth, p_depth, p_depth))
 	else:
 		_thread_finished.call_deferred(ERR_SKIP, new_data, Vector3i(p_depth, p_depth, p_depth))
@@ -122,7 +123,6 @@ func _thread_finished(err: Error, image: Array[Image], size: Vector3i) -> void:
 		_current_task_id = -1
 	_update_texture_from_image(err, image, size)
 	if _regen_queued:
-		_data_dirty = true
 		_regen_queued = false
 		_start_thread()
 
