@@ -67,8 +67,6 @@ func _update_texture() -> void:
 	_updated_queued = false
 
 func _generate_texture_element(b: int, image: Image, p_palette: PackedColorArray, p_depth: int) -> Error:
-	if not _data_dirty:
-		return ERR_SKIP
 	var size := maxf(1.0, float(p_depth) - 1.0)
 	var offset := .5 / size
 	for g: int in range(p_depth):
@@ -96,14 +94,14 @@ func _update_texture_from_image(err: Error, image: Array[Image], size: Vector3i)
 	emit_changed()
 
 func _start_thread() -> void:
-	_current_task_id = WorkerThreadPool.add_task(_task_function.bind(palette, depth), false, "PaletteLUT generation")
+	_current_task_id = WorkerThreadPool.add_task(_task_function.bind(palette, depth, _data_dirty), false, "PaletteLUT generation")
 
-func _task_function(p_palette: PackedColorArray, p_depth: int) -> void:
+func _task_function(p_palette: PackedColorArray, p_depth: int, p_dirty: bool) -> void:
 	var new_data: Array[Image]
 	new_data.resize(p_depth)
 	for i: int in p_depth:
 		new_data[i] = Image.create_empty(p_depth, p_depth, has_mipmaps(), get_format())
-	if _data_dirty:
+	if p_dirty:
 		# TODO: Address race conditions with this error
 		var err: Error = OK
 		var group_task_id := WorkerThreadPool.add_group_task(
