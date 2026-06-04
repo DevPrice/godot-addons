@@ -72,6 +72,9 @@ func _generate_texture(p_palette: PackedColorArray, p_depth: int) -> Array[Image
 		var image := Image.create_empty(p_depth, p_depth, has_mipmaps(), get_format())
 		new_data[b] = image
 		for g: int in range(p_depth):
+			# cancel if a new task was scheduled
+			if _regen_queued:
+				return _data
 			for r: int in range(p_depth):
 				var color := Color(r / size, g / size, b / size)
 				var palette_color := _get_palette_color(p_palette, color)
@@ -79,8 +82,10 @@ func _generate_texture(p_palette: PackedColorArray, p_depth: int) -> Array[Image
 	return new_data
 
 func _update_texture_from_image(image: Array[Image], size: Vector3i) -> void:
+	if _data == image: return
 	_data = image
-	var new_texture: RID = create_placeholder() if image.is_empty() else RenderingServer.texture_3d_create(_get_format(), size.x, size.y, size.z, has_mipmaps(), image)
+	if image.is_empty(): return
+	var new_texture: RID = RenderingServer.texture_3d_create(_get_format(), size.x, size.y, size.z, has_mipmaps(), image)
 	if _texture_rid.is_valid():
 		RenderingServer.texture_replace(_texture_rid, new_texture)
 	else:
