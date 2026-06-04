@@ -19,11 +19,15 @@
 		_data = value
 		_data_dirty = false
 
-var _data_dirty: bool = true
+@export_storage var _data_dirty: bool = true
+
 var _updated_queued: bool = false
 var _regen_queued: bool = false
 var _current_task_id: int = -1
 var _texture_rid: RID
+
+func _init() -> void:
+	_queue_update()
 
 func _get_data() -> Array[Image]:
 	return _data
@@ -62,22 +66,19 @@ func _update_texture() -> void:
 		_regen_queued = true
 	_updated_queued = false
 
-func _generate_texture(new_data: Array[Image], p_palette: PackedColorArray, p_depth: int) -> Error:
+func _generate_texture_element(b: int, image: Image, p_palette: PackedColorArray, p_depth: int) -> Error:
 	if not _data_dirty:
 		return ERR_SKIP
 	var size := maxf(1.0, float(p_depth) - 1.0)
 	var offset := .5 / size
-	for b: int in range(p_depth):
-		var image := Image.create_empty(p_depth, p_depth, has_mipmaps(), get_format())
-		new_data[b] = image
-		for g: int in range(p_depth):
-			# cancel if a new task was scheduled
-			if _regen_queued:
-				return ERR_SKIP
-			for r: int in range(p_depth):
-				var color := Color(r / size, g / size, b / size)
-				var palette_color := _get_palette_color(p_palette, color)
-				image.set_pixel(r, g, palette_color)
+	for g: int in range(p_depth):
+		# cancel if a new task was scheduled
+		if _regen_queued:
+			return ERR_SKIP
+		for r: int in range(p_depth):
+			var color := Color(r / size, g / size, b / size)
+			var palette_color := _get_palette_color(p_palette, color)
+			image.set_pixel(r, g, palette_color)
 	return OK
 
 func _update_texture_from_image(err: Error, image: Array[Image], size: Vector3i) -> void:
@@ -95,13 +96,27 @@ func _update_texture_from_image(err: Error, image: Array[Image], size: Vector3i)
 	emit_changed()
 
 func _start_thread() -> void:
-	_current_task_id = WorkerThreadPool.add_task(_thread_function.bind(palette, depth), false, "PaletteLUT generation")
+	_current_task_id = WorkerThreadPool.add_task(_task_function.bind(palette, depth), false, "PaletteLUT generation")
 
-func _thread_function(p_palette: PackedColorArray, p_depth: int) -> void:
+func _task_function(p_palette: PackedColorArray, p_depth: int) -> void:
 	var new_data: Array[Image]
 	new_data.resize(p_depth)
-	var err := _generate_texture(new_data, p_palette, p_depth)
-	_thread_finished.call_deferred(err, new_data, Vector3i(p_depth, p_depth, p_depth))
+	for i: int in p_depth:
+		new_data[i] = Image.create_empty(p_depth, p_depth, has_mipmaps(), get_format())
+	if _data_dirty:
+		# TODO: Address race conditions with this error
+		var err: Error = OK
+		var group_task_id := WorkerThreadPool.add_group_task(
+			func (i: int):
+				var element_err := _generate_texture_element(i, new_data[i], p_palette, p_depth)
+				if not err and element_err:
+					err = element_err,
+			p_depth,
+		)
+		WorkerThreadPool.wait_for_group_task_completion(group_task_id)
+		_thread_finished.call_deferred(err, new_data, Vector3i(p_depth, p_depth, p_depth))
+	else:
+		_thread_finished.call_deferred(ERR_SKIP, new_data, Vector3i(p_depth, p_depth, p_depth))
 
 func _thread_finished(err: Error, image: Array[Image], size: Vector3i) -> void:
 	if _current_task_id != -1:
@@ -114,13 +129,10 @@ func _thread_finished(err: Error, image: Array[Image], size: Vector3i) -> void:
 		_start_thread()
 
 func _get_palette_color(p_palette: PackedColorArray, color: Color) -> Color:
-	if p_palette.is_empty():
-		return color
+	var nearest_color := color
+	var nearest_distance := INF
 
-	var nearest_color := p_palette[0]
-	var nearest_distance := _get_perceptual_distance(color.srgb_to_linear(), p_palette[0].srgb_to_linear())
-
-	for i: int in range(1, p_palette.size()):
+	for i: int in range(p_palette.size()):
 		var distance := _get_perceptual_distance(color.srgb_to_linear(), p_palette[i].srgb_to_linear())
 		if distance < nearest_distance:
 			nearest_color = p_palette[i]
