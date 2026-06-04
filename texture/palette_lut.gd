@@ -1,3 +1,5 @@
+## Creates a color correction look-up-table from a list of colors.
+## Can be used directly with the [WorldEnvironment]'s [member Environment.adjustment_color_correction] property
 @tool class_name PaletteLUT extends Texture3D
 
 @export_range(1, 128, 1) var depth: int = 32:
