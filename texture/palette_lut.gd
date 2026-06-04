@@ -62,26 +62,25 @@ func _update_texture() -> void:
 		_regen_queued = true
 	_updated_queued = false
 
-func _generate_texture(p_palette: PackedColorArray) -> Array[Image]:
+func _generate_texture(p_palette: PackedColorArray, p_depth: int) -> Array[Image]:
 	if not _data_dirty: return _data
 	var new_data: Array[Image]
-	new_data.resize(depth)
-	var size := maxf(1.0, float(depth) - 1.0)
+	new_data.resize(p_depth)
+	var size := maxf(1.0, float(p_depth) - 1.0)
 	var offset := .5 / size
-	for b: int in range(depth):
-		var image := Image.create_empty(depth, depth, has_mipmaps(), get_format())
+	for b: int in range(p_depth):
+		var image := Image.create_empty(p_depth, p_depth, has_mipmaps(), get_format())
 		new_data[b] = image
-		for g: int in range(depth):
-			for r: int in range(depth):
+		for g: int in range(p_depth):
+			for r: int in range(p_depth):
 				var color := Color(r / size, g / size, b / size)
 				var palette_color := _get_palette_color(p_palette, color)
 				image.set_pixel(r, g, palette_color)
 	return new_data
 
-func _update_texture_from_image(image: Array[Image]) -> void:
+func _update_texture_from_image(image: Array[Image], size: Vector3i) -> void:
 	_data = image
-	if image.is_empty(): return
-	var new_texture: RID = create_placeholder() if image.is_empty() else RenderingServer.texture_3d_create(_get_format(), get_width(), get_height(), get_depth(), has_mipmaps(), image)
+	var new_texture: RID = create_placeholder() if image.is_empty() else RenderingServer.texture_3d_create(_get_format(), size.x, size.y, size.z, has_mipmaps(), image)
 	if _texture_rid.is_valid():
 		RenderingServer.texture_replace(_texture_rid, new_texture)
 	else:
@@ -90,16 +89,16 @@ func _update_texture_from_image(image: Array[Image]) -> void:
 	emit_changed()
 
 func _start_thread() -> void:
-	_current_task_id = WorkerThreadPool.add_task(_thread_function.bind(palette), false, "PaletteLUT generation")
+	_current_task_id = WorkerThreadPool.add_task(_thread_function.bind(palette, depth), false, "PaletteLUT generation")
 
-func _thread_function(p_palette: PackedColorArray) -> void:
-	_thread_finished.call_deferred(_generate_texture(p_palette))
+func _thread_function(p_palette: PackedColorArray, p_depth: int) -> void:
+	_thread_finished.call_deferred(_generate_texture(p_palette, p_depth), Vector3i(p_depth, p_depth, p_depth))
 
-func _thread_finished(image: Array[Image]) -> void:
+func _thread_finished(image: Array[Image], size: Vector3i) -> void:
 	if _current_task_id != -1:
 		WorkerThreadPool.wait_for_task_completion(_current_task_id)
 		_current_task_id = -1
-	_update_texture_from_image(image)
+	_update_texture_from_image(image, size)
 	if _regen_queued:
 		_data_dirty = true
 		_regen_queued = false
