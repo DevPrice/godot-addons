@@ -2,7 +2,7 @@
 ## Can be used directly with the [WorldEnvironment]'s [member Environment.adjustment_color_correction] property
 @tool class_name PaletteLUT extends Texture3D
 
-@export_range(1, 128, 1) var depth: int = 32:
+@export_range(2, 256, 1) var depth: int = 32:
 	set(value):
 		if value == depth: return
 		depth = value
