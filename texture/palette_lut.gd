@@ -48,7 +48,6 @@ func _has_mipmaps() -> bool:
 	return false
 
 func _get_rid() -> RID:
-	_get_data()
 	if not _texture_rid.is_valid():
 		_texture_rid = RenderingServer.texture_3d_placeholder_create()
 	return _texture_rid
