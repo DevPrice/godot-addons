@@ -13,6 +13,7 @@ signal player_leaving(controller: PlayerController)
 func _enter_tree() -> void:
 	var window := get_window()
 	if window and window.can_draw():
+		# don't spawn a player for dedicated servers
 		primary_player = LocalPlayer.new()
 		primary_player.add_to_group("local_players")
 		window.add_child.call_deferred(primary_player)
@@ -24,6 +25,10 @@ func _ready() -> void:
 	if player_spawner: player_spawner.spawn_function = _spawn_controller
 	var player_scene_path: String = ProjectSettings.get_setting("players/config/player_controller_scene", "uid://cosl2gcdqfe0x")
 	if player_scene_path: _player_scene = load(player_scene_path)
+	if primary_player and is_multiplayer_authority():
+		join_player.call_deferred(primary_player)
+	multiplayer.peer_connected.connect(_on_peer_connected)
+	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 
 func create_local_player(viewport: Viewport) -> LocalPlayer:
 	if not viewport:
@@ -99,6 +104,22 @@ func get_controllers_for_peer(peer_id: int) -> Array[PlayerController]:
 		var controller := Controller.get_instigator(remote_player)
 		if controller: result.push_back(controller)
 	return result
+
+func _on_peer_connected(peer_id: int) -> void:
+	var player: RemotePlayer = create_remote_player(peer_id)
+	if is_multiplayer_authority():
+		join_player(player)
+
+func _on_peer_disconnected(id: int):
+	var remote_player: RemotePlayer = get_remote_player(id)
+	if remote_player: remote_player.queue_free()
+	if is_multiplayer_authority():
+		for controller: PlayerController in get_controllers_for_peer(id):
+			controller.queue_free()
+	elif id == get_multiplayer_authority():
+		# TODO: Handle more gracefully
+		push_error("Disconnected from host, closing game.")
+		get_tree().quit.call_deferred(ERR_CANT_CONNECT)
 
 func _spawn_controller(peer_id: int) -> PlayerController:
 	var player_controller := _create_controller(peer_id)

@@ -7,6 +7,14 @@ var _history_offset: int = -1
 var _completion := TextCompletionContext.new()
 var _completion_start: int = -1
 
+var _default_input_map: Dictionary[StringName, InputEvent] = {
+	&"console": _create_default_input(KEY_QUOTELEFT),
+	&"console_history_prev": _create_default_input(KEY_UP),
+	&"console_history_next": _create_default_input(KEY_DOWN),
+	&"text_completion_prev": _create_default_input(KEY_TAB, true),
+	&"text_completion_next": _create_default_input(KEY_TAB),
+}
+
 func _enter_tree() -> void:
 	if input:
 		input.gui_input.connect(_gui_input)
@@ -20,6 +28,7 @@ func _exit_tree() -> void:
 		input.text_changed.disconnect(_on_input_text_changed)
 
 func _ready() -> void:
+	_add_default_input_actions()
 	if input: input.grab_focus()
 	var console := _get_console()
 	if console and history:
@@ -30,6 +39,20 @@ func _ready() -> void:
 		for command: DevConsole.HistoryEntry in reverse_history:
 			if not command.hidden: _add_history(command)
 		_completion.options = console.get_completion_options("")
+
+## Ideally this would happen when the plugin is enabled, but Godot doesn't seem to support that yet.
+## See: godotengine/godot/issues/25865
+func _add_default_input_actions() -> void:
+	for action: StringName in _default_input_map:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action)
+			InputMap.action_add_event(action, _default_input_map[action])
+
+func _create_default_input(key: int, shift_pressed: bool = false) -> InputEventKey:
+	var event := InputEventKey.new()
+	event.physical_keycode = key
+	event.shift_pressed = shift_pressed
+	return event
 
 func _gui_input(event: InputEvent) -> void:
 	var console := _get_console()

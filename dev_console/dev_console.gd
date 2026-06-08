@@ -14,10 +14,15 @@ var _custom_context: Dictionary[StringName, Variant]
 
 static var _valid_completion_regex := RegEx.new()
 
+const _default_input_map: Dictionary[StringName, int] = {
+	&"console": KEY_QUOTELEFT,
+}
+
 func _init() -> void:
 	process_mode = PROCESS_MODE_ALWAYS
 
 func _ready() -> void:
+	_add_default_input_actions()
 	if not _console_enabled(): return
 	for global_class: Dictionary in ProjectSettings.get_global_class_list():
 		if global_class.base == "ConsoleCommands":
@@ -25,6 +30,16 @@ func _ready() -> void:
 			var node: ConsoleCommands = script.new()
 			node.name = global_class.class.to_snake_case().replace("_commands", "")
 			add_child(node)
+
+## Ideally this would happen when the plugin is enabled, but Godot doesn't seem to support that yet.
+## See: godotengine/godot/issues/25865
+func _add_default_input_actions() -> void:
+	for action: StringName in _default_input_map:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action)
+			var event := InputEventKey.new()
+			event.physical_keycode = _default_input_map[action]
+			InputMap.action_add_event(action, event)
 
 func run_command(command_string: String) -> Variant:
 	if not _console_enabled(): return null
