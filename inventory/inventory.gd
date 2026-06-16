@@ -18,11 +18,7 @@ func get_item_stacks() -> Array[ItemStack]:
 func consume(item_definition: ItemDefinition, count: int = 1) -> void:
 	for stack: ItemStack in get_item_stacks():
 		if stack and stack.definition == item_definition:
-			if stack.stack_count > count:
-				stack.stack_count -= count
-				return
-			count -= stack.stack_count
-			stack.free()
+			count -= stack.consume(count)
 			if count <= 0:
 				return
 
