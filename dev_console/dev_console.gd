@@ -48,7 +48,11 @@ func run_command(command_string: String) -> Variant:
 	var expression := Expression.new()
 	var expression_context := _get_expression_context()
 	if expression.parse(command_string, expression_context.keys()) == OK:
+		var logger := DevOutputLogger.new()
+		OS.add_logger(logger)
 		var result := expression.execute(expression_context.values(), self, false)
+		OS.remove_logger(logger)
+		history_entry.logs = logger.logs
 		if typeof(result) == TYPE_CALLABLE and _can_run_without_args(result):
 			result = result.call()
 		if not expression.has_execute_failed():
@@ -210,6 +214,19 @@ class HistoryEntry extends RefCounted:
 	var result: Variant
 	var error: bool
 	var hidden: bool
+	var logs: Array[Dictionary]
 
 	func _to_string() -> String:
 		return "HistoryEntry(command=%s, result=%s, error=%s)" % [command, result, error]
+
+class DevOutputLogger extends Logger:
+	var logs: Array[Dictionary]
+
+	func _log_message(message: String, error: bool) -> void:
+		logs.push_back({
+			&"message": message,
+			&"error": error,
+		})
+
+	func _log_error(function: String, file: String, line: int, code: String, rationale: String, editor_notify: bool, error_type: int, script_backtraces: Array[ScriptBacktrace]) -> void:
+		pass

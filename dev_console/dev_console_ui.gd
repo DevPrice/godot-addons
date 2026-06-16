@@ -97,11 +97,18 @@ func _add_history(entry: DevConsole.HistoryEntry) -> void:
 		history.push_context()
 		if history.get_line_count(): history.add_text("\n")
 		history.add_text(entry.command)
+		if entry.result or not entry.logs.is_empty():
+			history.add_text("\n")
+		for log: Dictionary in entry.logs:
+			var text_color := history.get_theme_color("error_text_color") if log.error else history.get_theme_color("secondary_text_color")
+			history.push_color(text_color)
+			var message: String = log.message
+			history.add_text(log.message)
+			history.pop()
 		if entry.result != null:
 			var output: Variant = entry.result
 			if output is ConsoleCommands:
 				output = output._help()
-			history.add_text("\n")
 			var text_color := history.get_theme_color("error_text_color") if entry.error else history.get_theme_color("secondary_text_color")
 			history.push_color(text_color)
 			history.add_text(str(output))
