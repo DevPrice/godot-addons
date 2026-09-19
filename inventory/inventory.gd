@@ -1,5 +1,7 @@
 class_name Inventory extends Node
 
+signal stacks_changed
+
 var _item_stacks: Array[ItemStack] = []
 
 func _notification(what: int) -> void:
@@ -11,21 +13,35 @@ func _refresh_item_stacks() -> void:
 	for child: Node in get_children():
 		if child and child is ItemStack:
 			_item_stacks.push_back(child)
+	stacks_changed.emit()
 
 func get_item_stacks() -> Array[ItemStack]:
 	return _item_stacks.duplicate()
+
+func add_item(item_definition: ItemDefinition, count: int = 1) -> void:
+	for stack: ItemStack in get_item_stacks():
+		if stack and stack.definition == item_definition:
+			stack.stack_count += count
+			stacks_changed.emit()
+			return
+	var stack := ItemStack.new()
+	stack.definition = item_definition
+	stack.stack_count = count
+	add_child(stack)
 
 func consume(item_definition: ItemDefinition, count: int = 1) -> void:
 	for stack: ItemStack in get_item_stacks():
 		if stack and stack.definition == item_definition:
 			count -= stack.consume(count)
 			if count <= 0:
-				return
+				break
+	stacks_changed.emit()
 
 func consume_all(item_definition: ItemDefinition) -> void:
 	for stack: ItemStack in get_item_stacks():
 		if stack and stack.definition == item_definition:
 			stack.free()
+	stacks_changed.emit()
 
 func get_count(item_definition: ItemDefinition) -> int:
 	var total_count: int = 0
