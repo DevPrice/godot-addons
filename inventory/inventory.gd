@@ -43,6 +43,11 @@ func consume_all(item_definition: ItemDefinition) -> void:
 			stack.free()
 	stacks_changed.emit()
 
+func clear() -> void:
+	for stack: ItemStack in get_item_stacks():
+		stack.queue_free()
+	stacks_changed.emit()
+
 func get_count(item_definition: ItemDefinition) -> int:
 	var total_count: int = 0
 	for stack: ItemStack in get_item_stacks():
