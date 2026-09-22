@@ -4,6 +4,7 @@ signal dirty_changed(is_dirty: bool)
 signal committed
 
 @export var commit_on_change: bool = true
+@export var root_container: Container
 
 var _original_configs: Dictionary[StringName, Variant]
 var _changed_configs: Dictionary[StringName, Variant]
@@ -37,9 +38,10 @@ func _property_list_changed() -> void:
 		if not _config_nodes.has(property):
 			var control := _create_config(property_info)
 			if control:
-				control.tree_entered.connect(func (): _config_nodes[property_info.name] = control, CONNECT_ONE_SHOT)
-				control.tree_exiting.connect(func (): _config_nodes.erase(property_info.name), CONNECT_ONE_SHOT)
-				add_child.call_deferred(control)
+				_config_nodes[property_info.name] = control
+				control.tree_exited.connect(func (): _config_nodes.erase(property_info.name), CONNECT_ONE_SHOT)
+				var control_parent: Node = root_container if root_container else self
+				control_parent.add_child.call_deferred(control)
 		if _config_nodes.has(property) and not (property_info.usage & (PROPERTY_USAGE_GROUP | PROPERTY_USAGE_SUBGROUP)):
 			var config_node := _config_nodes[property]
 			config_node.visible = property_info.usage & PROPERTY_USAGE_EDITOR
