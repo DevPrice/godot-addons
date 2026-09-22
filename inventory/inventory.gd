@@ -11,8 +11,11 @@ func _notification(what: int) -> void:
 func _refresh_item_stacks() -> void:
 	_item_stacks.clear()
 	for child: Node in get_children():
-		if child and child is ItemStack:
+		if not child: continue
+		if child is ItemStack:
 			_item_stacks.push_back(child)
+			if not child.count_changed.is_connected(stacks_changed.emit):
+				child.count_changed.connect(stacks_changed.emit.unbind(1))
 	stacks_changed.emit()
 
 func get_item_stacks() -> Array[ItemStack]:

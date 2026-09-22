@@ -1,7 +1,12 @@
 class_name ItemStack extends Node
 
+signal count_changed(new_count: int)
+
 @export var definition: ItemDefinition
-@export var stack_count: int = 1
+@export var stack_count: int = 1:
+	set(value):
+		stack_count = value
+		count_changed.emit(value)
 
 var _definition_path: String:
 	get: return definition.resource_path
