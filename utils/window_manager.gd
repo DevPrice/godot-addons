@@ -13,22 +13,24 @@ func _enter_tree() -> void:
 	_add_default_input_actions()
 	var window := get_window()
 	if window:
-		window.size_changed.connect(_size_changed)
+		window.size_changed.connect(_update_scale)
 		if OS.has_feature("web"): JavaScriptBridge.eval("navigator.keyboard && navigator.keyboard.lock()", true)
 
 func _exit_tree() -> void:
 	var window := get_window()
-	if window: window.size_changed.disconnect(_size_changed)
+	if window: window.size_changed.disconnect(_update_scale)
 
 func _ready() -> void:
-	_size_changed()
+	_update_scale()
 
-func _size_changed() -> void:
+func _update_scale() -> void:
 	var window := get_window()
-	if window and content_scale_curve:
-		window.content_scale_factor = get_ui_scale(window.size)
+	if not window: return
+	var screen_scale := DisplayServer.screen_get_scale(window.current_screen)
+	window.content_scale_factor = get_ui_scale(window.size) * screen_scale
 
 func get_ui_scale(viewport_size: Vector2i) -> float:
+	if not content_scale_curve: return 1.0
 	var shortest_side := minf(viewport_size.x, viewport_size.y)
 	return content_scale_curve.sample(shortest_side)
 
