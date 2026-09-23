@@ -22,6 +22,7 @@ func get_item_stacks() -> Array[ItemStack]:
 	return _item_stacks.duplicate()
 
 func add_item(item_definition: ItemDefinition, count: int = 1) -> void:
+	if count < 1: return
 	for stack: ItemStack in get_item_stacks():
 		if stack and stack.definition == item_definition:
 			stack.stack_count += count

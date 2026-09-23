@@ -28,3 +28,6 @@ func consume(count: int = 1) -> int:
 	if stack_count <= 0:
 		queue_free()
 	return count
+
+func consume_all() -> int:
+	return consume(stack_count)
