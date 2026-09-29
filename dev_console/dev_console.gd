@@ -54,7 +54,7 @@ func run_command(command_string: String) -> Variant:
 		OS.remove_logger(logger)
 		history_entry.logs = logger.logs
 		if typeof(result) == TYPE_CALLABLE and _can_run_without_args(result):
-			result = result.call()
+			result = await result.call()
 		if not expression.has_execute_failed():
 			history_entry.result = result
 			_prev_result = result
